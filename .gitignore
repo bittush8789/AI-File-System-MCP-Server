@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Pytest / Caches
+.pytest_cache/
+.chroma/
+
+# Workspace sandbox data
+workspace/
+backend/database/metadata.db
+
+# OS files
+.DS_Store
+Thumbs.db
