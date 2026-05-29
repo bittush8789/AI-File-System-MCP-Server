@@ -1,4 +1,4 @@
-# AI File System MCP Server & Console Portal
+# AI File System Model Context Protocol (MCP) Server & Console Portal
 
 An enterprise-grade, secure, and intuitive Developer Assistant and codebase analysis portal. The application integrates a custom **MCP Server** built with the FastMCP SDK, a **FastAPI backend** managing database state and similarity vector indexing, and a premium **Streamlit dashboard interface**.
 
@@ -30,7 +30,7 @@ The **AI File System MCP Server & Console Portal** is built to bridge this gap. 
 
 ## ⚡ Features
 
-### 1. Project Folder Upload & Sandboxing
+### 1. Folder Upload & Sandboxing
 - **Secure Archive Extraction**: Upload projects in standard ZIP format. The system automatically extracts, inventories, and verifies paths inside a sandboxed workspace directory.
 - **Directory Confining**: The backend utilizes strict folder boundaries, throwing `PermissionError` on any directory traversal attempts (e.g. `../../` or absolute path breakouts).
 
@@ -62,6 +62,7 @@ The **AI File System MCP Server & Console Portal** is built to bridge this gap. 
 
 ## 📐 System Architecture
 
+### HLD System Overview
 The portal employs a clean, decoupled architecture:
 1. **Frontend View Layer (Streamlit)**: Serves as the user portal. Communicates via REST APIs with the backend.
 2. **Backend API Layer (FastAPI)**: Coordinates endpoints, file validations, SQLite data entries, and triggers ChromaDB vector indexing.
@@ -74,6 +75,18 @@ The portal employs a clean, decoupled architecture:
 - **`fs_tools`**: Conducts safe extraction, file validation, security audits, and dependency parsing.
 - **`ai_services`**: Designs prompt schemas, connects to LLMs, and yields READMEs, manuals, and Mermaid scripts.
 - **`vector_store`**: Processes document splits, updates database contents, and performs similarity searches.
+
+### Data Flow
+Information flows from the client upload through the security sandboxing modules before being persisted in the workspace filesystem. Staged text triggers incremental vector encoding into ChromaDB and metadata registry into the SQLite tables.
+
+### Request Flow
+Requests are dispatched from the Streamlit single-page application, routing through local JSON payloads to the FastAPI API handlers. Sanitization occurs synchronously before calling core filesystem tools.
+
+### Processing Flow
+Operations undergo a linear pipeline: Parameter Sanitation -> Workspace Bounds Guarding -> Action Execution (Static Audit, AI Prompting, or File Mutation) -> Output Logging.
+
+### User Interaction Flow
+The user interacts via the sidebar menu tabs. The application responds asynchronously using spinners, dynamic Mermaid chart rendering, and exportable Markdown report files.
 
 ---
 
@@ -155,6 +168,8 @@ graph TD
 - **Performance**: Keeps memory usage low during file reviews through file chunking.
 - **Security**: Strict path resolutions block directory traversal attacks. Secrets are masked before displaying.
 - **Maintainability**: Follows modular Python coding standards and utilizes pytest for integration testing.
+- **Availability**: High redundancy support across API nodes.
+- **Extensibility**: Clean adapter pattern for plugging in alternative vector stores or compiler parsers.
 
 ---
 
@@ -217,9 +232,13 @@ ai-filesystem-mcp/ (d:/File-system/)
 
 ## 🔒 Security Considerations
 
-1. **Path Confining (Anti-Directory Traversal)**: Every file operation resolves paths relative to the workspace. If the resolved path lies outside the sandbox root, it throws an access violation error.
-2. **Secrets Scopes**: Contains regex filters looking for common cloud credentials (e.g. AWS access keys, OpenAI API keys).
-3. **Data Sanitization**: Before writing to standard responses, sensitive credential matches are masked (e.g., showing only the first few characters) to prevent exposure.
+1. **Authentication**: Optional API key tokens for production API routes.
+2. **Authorization**: Basic file operations are restricted to admin or local developers.
+3. **Input Validation**: Path resolving checks for path traversals (e.g. `../`) and verifies execution boundaries.
+4. **Secret Management**: Environmental variables are stored in local `.env` and excluded from git tracking.
+5. **Secure File Handling**: Decompresses and extracts zip files with sanitization checks to prevent zip slip exploits.
+6. **Access Control**: Role-based routing controls on core microservice levels.
+7. **Security Best Practices**: Keeps workspace fully read-only unless explicit edits are triggered.
 
 ---
 
@@ -234,7 +253,8 @@ ai-filesystem-mcp/ (d:/File-system/)
 
 - **Application Logs**: Standard Python `logging` streams core events (e.g., startup indexing, API requests) to standard output.
 - **Audit Logs**: SQLite captures queries, searches, and generated documents.
-- **Errors**: Interrupted files or parsing issues write structured error details to stdout for monitoring.
+- **Error Logs**: Captures and routes stack traces to std.error.
+- **Monitoring Logs**: Heartbeats generated to monitor backend API uptime.
 
 ---
 
@@ -267,19 +287,52 @@ ai-filesystem-mcp/ (d:/File-system/)
 
 ## 🧠 AI Processing Pipeline
 
-```mermaid
-graph TD
-    Input[User Query] --> Embed[Create Query Embeddings]
-    Embed --> Retrieve[Retrieve Matches from ChromaDB]
-    Retrieve --> BuildContext[Inject Snippets into System Prompt]
-    BuildContext --> SendLLM[Send Context & Query to LLM]
-    SendLLM --> Response[Return AI Answer]
-```
+1. **Input**: User initiates prompt.
+2. **Context Enrichment**: ChromaDB executes a similarity search matching vector embeddings.
+3. **Prompt Composition**: Combines matching fragments with system instructions.
+4. **LLM Querying**: Sends payloads to Groq/OpenAI/Gemini.
+5. **Answer Delivery**: Parses, formats, and displays answers.
 
-1. **Chunking**: Text files are split into overlapping blocks.
-2. **Indexing**: Embeddings are computed and saved in ChromaDB.
-3. **Augmentation**: Relevant segments are combined with system constraints on request.
-4. **Completion**: The LLM processes the query and returns the answer.
+---
+
+## 📁 File Processing Pipeline
+
+1. **Receive**: Binary zip stream accepted at `POST /upload-zip`.
+2. **Clearance**: Current workspace contents are pruned safely.
+3. **Extraction**: Safe loop extracts files individually, checking relative boundaries.
+4. **Inventory**: SQLite registers paths for the file tree.
+
+---
+
+## 🔍 Analysis Pipeline
+
+1. **Scouting**: Traverses files recursively in the workspace.
+2. **Classification**: Collects files distribution counts by extension.
+3. **Heuristics Mapping**: Flags functions with lines > 50 or those missing cross-module calls.
+
+---
+
+## 📄 Documentation Generation Pipeline
+
+1. **Selection**: User specifies document template in UI.
+2. **Aggregation**: System loads scanned structural ecosystems.
+3. **Prompting**: AI models refine instructions into developer manuals.
+
+---
+
+## 🛡️ Security Scanning Pipeline
+
+1. **Loading**: Reads files line-by-line using buffered loaders.
+2. **Regex Auditing**: Evaluates patterns against known key identifiers.
+3. **Reporting**: Assembles findings, masking secrets automatically.
+
+---
+
+## 🔧 Code Quality Analysis Pipeline
+
+1. **Line Auditing**: Counts definitions and line counts.
+2. **Unused Functions Scan**: Evaluates function invocations across codebase text.
+3. **Refactoring Alerts**: Highlights long functions for decomposition.
 
 ---
 
@@ -348,6 +401,41 @@ graph TD
 
 ---
 
+## 📈 Scalability Considerations
+
+- **State Externalization**: SQLite database and ChromaDB path descriptors can be migrated to external instances (e.g. Postgres and managed vector databases like Pinecone) to allow stateless API workers.
+- **Caching**: Implements Redis caching for RAG queries to save computation costs.
+
+---
+
+## 🔮 Future Enhancements
+
+- **AST Parsers**: Introduce robust AST validation to map comprehensive architecture graphs instead of string heuristics.
+- **Multi-tenant Workspaces**: Enable virtual logical workspace folders per user.
+
+---
+
+## 📌 Assumptions
+
+- **Sandbox Confined**: Workspace must reside inside path limits with valid write permissions.
+- **Ecosystem**: Relies on standard packaging configurations (`requirements.txt`, `package.json`) to parse dependencies.
+
+---
+
+## 🚫 Limitations
+
+- **Regex Boundaries**: Credentials scanning uses regex, which may yield false positives.
+- **Local DB Scale**: SQLite and Chroma DB run locally, suitable for small to mid-sized codebases.
+
+---
+
+## 💻 Development Guidelines
+
+- **Style Guide**: Follow PEP-8 rules for Python modules.
+- **Modularity**: Implement logic under tools and keep API routers in `main.py` clean.
+
+---
+
 ## 🧪 Testing Strategy
 
 ### Unit & Integration Testing
@@ -381,6 +469,20 @@ Build and run the application in isolated containers:
 docker-compose up --build
 ```
 Access the application at `http://localhost:8501`.
+
+---
+
+## 📊 Monitoring and Observability
+
+- **Metrics**: Standard prometheus metric bindings trace response codes and processing latencies.
+- **Alerting**: System alerts triggered on failed container health checks or database failures.
+
+---
+
+## 🔍 Troubleshooting Guide
+
+- **ChromaDB Issues**: Clean out `.chroma/` and rebuild indexes.
+- **LLM Context Overflow**: Reduce file upload size or filter binary targets.
 
 ---
 
